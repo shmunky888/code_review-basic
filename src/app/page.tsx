@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const TOKEN_LIMIT = 100000;
+const STORAGE_KEY = "codereview_tokens_used";
 
 export default function Home() {
   const [code, setCode] = useState("");
@@ -13,6 +14,11 @@ export default function Home() {
   const [tokensUsed, setTokensUsed] = useState(0);
   const [error, setError] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) setTokensUsed(Number(stored));
+  }, []);
 
   const handleReview = async () => {
     if (!code.trim()) return;
@@ -35,11 +41,15 @@ export default function Home() {
         setError(data.error || "Review failed");
       } else {
         setReport(data.report);
-        const pTokens = Math.ceil(code.length / 4);
-        const cTokens = Math.ceil((data.report || "").length / 4);
+        const pTokens = data.usage?.prompt_tokens ?? Math.ceil(code.length / 4);
+        const cTokens = data.usage?.completion_tokens ?? Math.ceil((data.report || "").length / 4);
         setPromptTokens(pTokens);
         setCompletionTokens(cTokens);
-        setTokensUsed((prev) => prev + pTokens + cTokens);
+        setTokensUsed((prev) => {
+          const next = prev + pTokens + cTokens;
+          localStorage.setItem(STORAGE_KEY, String(next));
+          return next;
+        });
       }
     } catch {
       setError("Failed to connect to review API");

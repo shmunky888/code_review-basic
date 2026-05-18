@@ -97,12 +97,13 @@ ${code}
     }
 
     const report = data.choices?.[0]?.message?.content;
+    const usage = data.usage;
 
     if (!report) {
       return NextResponse.json({ error: "No response from model", raw: data }, { status: 500 });
     }
 
-    return NextResponse.json({ report });
+    return NextResponse.json({ report, usage });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Review failed";
     return NextResponse.json({ error: message }, { status: 500 });
