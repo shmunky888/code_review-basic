@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
 3. Readability — formatting, comments, clarity
 4. Architecture — separation of concerns, coupling, patterns
 5. Logic — correctness, edge cases, error handling, efficiency
-6. AI Detection — signs of AI-generated code
 
 Then list: Top 3 fixes, then 1-2 positive highlights.
 
