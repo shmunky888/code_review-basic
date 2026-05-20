@@ -42,46 +42,11 @@ export default function Home() {
         return;
       }
 
-      const reader = res.body?.getReader();
-      if (!reader) {
-        setError("No response stream");
-        setIsReviewing(false);
-        return;
-      }
+      const data = await res.json();
+      const fullReport = data.content;
+      const usage = data.usage || null;
 
-      const decoder = new TextDecoder();
-      let fullReport = "";
-      let usage: { prompt_tokens?: number; completion_tokens?: number } | null = null;
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith("data: ")) continue;
-          const jsonStr = trimmed.slice(6);
-          if (jsonStr === "[DONE]") continue;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            if (parsed.text) {
-              fullReport += parsed.text;
-              setReport(fullReport);
-            }
-            if (parsed.usage) {
-              usage = parsed.usage;
-            }
-          } catch {
-            // skip malformed chunks
-          }
-        }
-      }
+      setReport(fullReport);
 
       const pTokens = usage?.prompt_tokens ?? Math.ceil(code.length / 4);
       const cTokens = usage?.completion_tokens ?? Math.ceil(fullReport.length / 4);
@@ -162,7 +127,7 @@ export default function Home() {
             </div>
           ) : (
             <>
-            <div className="h-[32rem] overflow-auto rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="custom-scrollbar h-[32rem] overflow-auto rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
               <pre className="whitespace-pre-wrap font-sans text-sm leading-7 text-zinc-800 dark:text-zinc-200">
                 {report}
               </pre>

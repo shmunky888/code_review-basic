@@ -33,7 +33,6 @@ ${code}
         model: "nvidia/nemotron-3-super-120b-a12b:free",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 4096,
-        stream: true,
       }),
     });
 
@@ -43,50 +42,15 @@ ${code}
       return NextResponse.json({ error: errorMsg }, { status: 500 });
     }
 
-    const reader = res.body?.getReader();
-    if (!reader) {
-      return NextResponse.json({ error: "No response body" }, { status: 500 });
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content;
+    const usage = data.usage;
+
+    if (!content) {
+      return NextResponse.json({ error: "No content in response" }, { status: 500 });
     }
 
-    const decoder = new TextDecoder();
-
-    const stream = new ReadableStream({
-      async pull(controller) {
-        const { done, value } = await reader.read();
-        if (done) {
-          controller.close();
-          return;
-        }
-
-        const text = decoder.decode(value, { stream: true });
-        for (const line of text.split("\n")) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith("data: ")) continue;
-          const jsonStr = trimmed.slice(6);
-          if (jsonStr === "[DONE]") {
-            controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
-            continue;
-          }
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) {
-              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ text: delta })}\n\n`));
-            }
-            const usage = parsed.usage;
-            if (usage) {
-              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ usage })}\n\n`));
-            }
-          } catch {
-            // skip malformed chunks
-          }
-        }
-      },
-    });
-
-    return new Response(stream, {
-      headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
-    });
+    return NextResponse.json({ content, usage });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Review failed";
     return NextResponse.json({ error: message }, { status: 500 });
