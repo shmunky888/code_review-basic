@@ -35,22 +35,63 @@ export default function Home() {
         body: JSON.stringify({ code, language }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
+        const data = await res.json();
         setError(data.error || "Review failed");
-      } else {
-        setReport(data.report);
-        const pTokens = data.usage?.prompt_tokens ?? Math.ceil(code.length / 4);
-        const cTokens = data.usage?.completion_tokens ?? Math.ceil((data.report || "").length / 4);
-        setPromptTokens(pTokens);
-        setCompletionTokens(cTokens);
-        setTokensUsed((prev) => {
-          const next = prev + pTokens + cTokens;
-          localStorage.setItem(STORAGE_KEY, String(next));
-          return next;
-        });
+        setIsReviewing(false);
+        return;
       }
+
+      const reader = res.body?.getReader();
+      if (!reader) {
+        setError("No response stream");
+        setIsReviewing(false);
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let fullReport = "";
+      let usage: { prompt_tokens?: number; completion_tokens?: number } | null = null;
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data: ")) continue;
+          const jsonStr = trimmed.slice(6);
+          if (jsonStr === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.text) {
+              fullReport += parsed.text;
+              setReport(fullReport);
+            }
+            if (parsed.usage) {
+              usage = parsed.usage;
+            }
+          } catch {
+            // skip malformed chunks
+          }
+        }
+      }
+
+      const pTokens = usage?.prompt_tokens ?? Math.ceil(code.length / 4);
+      const cTokens = usage?.completion_tokens ?? Math.ceil(fullReport.length / 4);
+      setPromptTokens(pTokens);
+      setCompletionTokens(cTokens);
+      setTokensUsed((prev) => {
+        const next = prev + pTokens + cTokens;
+        localStorage.setItem(STORAGE_KEY, String(next));
+        return next;
+      });
     } catch {
       setError("Failed to connect to review API");
     }
