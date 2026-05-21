@@ -1,9 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const TOKEN_LIMIT = 100000;
 const STORAGE_KEY = "codereview_tokens_used";
+
+function getInitialTokensUsed() {
+  if (typeof window === "undefined") return 0;
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  const parsed = stored ? Number(stored) : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 export default function Home() {
   const [code, setCode] = useState("");
@@ -11,14 +18,10 @@ export default function Home() {
   const [report, setReport] = useState("");
   const [promptTokens, setPromptTokens] = useState(0);
   const [completionTokens, setCompletionTokens] = useState(0);
-  const [tokensUsed, setTokensUsed] = useState(0);
+  const [tokensUsed, setTokensUsed] = useState(getInitialTokensUsed);
   const [error, setError] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) setTokensUsed(Number(stored));
-  }, []);
 
   const handleReview = async () => {
     if (!code.trim()) return;
