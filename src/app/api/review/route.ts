@@ -7,7 +7,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No code provided" }, { status: 400 });
   }
 
-  const prompt = `Review this ${language} code. For each dimension rate it: ✅ Good / ⚠️ Issues / 🚨 Critical.
+  if (code.length > 200000) {
+    return NextResponse.json({ error: "Code too large (max 200,000 characters)" }, { status: 400 });
+  }
+
+  const safeLanguage = typeof language === "string" && /^[a-zA-Z0-9_\-]+$/.test(language)
+    ? language
+    : "plaintext";
+
+  const prompt = `Review this ${safeLanguage} code. For each dimension rate it: ✅ Good / ⚠️ Issues / 🚨 Critical.
 
 1. Security — vulnerabilities, input validation, exposed secrets
 2. Code Organization — naming, dead code, DRY violations
@@ -17,7 +25,7 @@ export async function POST(req: NextRequest) {
 
 Then list: Top 3 fixes, then 1-2 positive highlights.
 
-\`\`\`${language}
+\`\`\`${safeLanguage}
 ${code}
 \`\`\``;
 
@@ -36,8 +44,13 @@ ${code}
     });
 
     if (!res.ok) {
-      const data = await res.json();
-      const errorMsg = data?.error?.message || "OpenRouter request failed";
+      let errorMsg = "OpenRouter request failed";
+      try {
+        const data = await res.json();
+        errorMsg = data?.error?.message || errorMsg;
+      } catch {
+        // Non-JSON error response (e.g. HTML from a 502)
+      }
       return NextResponse.json({ error: errorMsg }, { status: 500 });
     }
 
