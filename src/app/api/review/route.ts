@@ -37,7 +37,7 @@ ${code}
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "nvidia/nemotron-3-super-120b-a12b:free",
+        model: "openrouter/owl-alpha",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 4096,
       }),
