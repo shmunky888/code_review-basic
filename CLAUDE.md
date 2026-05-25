@@ -4,50 +4,68 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Important: Non-standard Next.js
 
-This is **not** the Next.js from training data — APIs, conventions, and file structure may differ. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This is **not** the Next.js version most training data covers — APIs, conventions, and file structure may differ. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 
 ## Project Overview
 
-AI-powered code review tool. Users paste code, select a language, and get a review report via the OpenRouter API (`nvidia/nemotron-3-super-120b-a12b:free` model). Review covers: Security, Code Organization, Code Aesthetics, Architecture, Logic/Correctness, AI-Generated Code Detection.
+An AI‑powered code‑review web app. Users paste code, select a language, and receive a review generated via the OpenRouter API. The UI lives in the **app** router, while the review logic runs on a server‑only API route.
 
 ## Tech Stack
 
-- **Next.js 16** (App Router) / **TypeScript** (strict mode) / **React 19**
-- **Tailwind CSS v4** (via `@tailwindcss/postcss`) — inline utility classes, zinc color palette, dark mode via `prefers-color-scheme`
-- **ESLint 9** (flat config, core-web-vitals + TypeScript)
-- **OpenRouter API** for AI reviews (server-side fetch in API route)
+- **Next.js 16 (App Router)** – server‑rendered pages, API routes, and edge‑compatible utilities.
+- **TypeScript** – strict mode, `tsconfig.json` alias `@/*` → `./src/*`.
+- **React 19** – functional components, client‑side interactivity.
+- **Tailwind CSS v4** – utility‑first styling, dark‑mode via `prefers-color-scheme`.
+- **ESLint 9** – flat config, included via `npm run lint`.
+- **OpenRouter API** – server‑side call to `openrouter.ai` for AI review.
 
-## Key Structure
+## High‑Level Architecture
 
 ```
-src/app/
-  page.tsx              # Main UI — language selector, code input, review output
-  layout.tsx            # Root layout with Geist fonts and Navbar
-  globals.css           # Tailwind entry + CSS custom properties
-  api/review/route.ts   # POST endpoint — calls OpenRouter, returns { report, usage }
-  components/
-    Navbar.tsx          # Top navbar with avatar
+src/
+├─ app/                     # Next.js App Router entry point
+│   ├─ layout.tsx           # Global layout, fonts, navbar wrapper
+│   ├─ page.tsx             # Main UI – code editor, language selector, review output
+│   ├─ globals.css          # Tailwind entry & custom CSS variables
+│   └─ api/
+│       └─ review/
+│           └─ route.ts      # POST endpoint – validates input, calls OpenRouter, returns {content, usage}
+│
+├─ components/
+│   ├─ Navbar.tsx          # Top navigation bar with user avatar
+│   └─ … (UI widgets)      # Small presentational components used by page.tsx
+│
+└─ … (other folders as needed)
 ```
 
-## Environment
+- **UI flow**: `page.tsx` renders a textarea for code, a language dropdown, and a button that POSTs to `/api/review`. The response JSON is displayed in the UI.
+- **Server side**: `api/review/route.ts` validates the payload, sanitizes the language identifier, builds a prompt, and forwards it to OpenRouter. Errors are normalised into JSON with HTTP‑status codes.
+- **Environment**: `OPENROUTER_API_KEY` is required and must stay server‑only (loaded from `.env.local`). No secrets are ever sent to the client.
 
-- `OPENROUTER_API_KEY` — required, loaded from `.env.local`
-
-## Commands
+## Development Commands
 
 ```bash
-npm run dev     # Start dev server
-npm run build   # Production build
-npm run start   # Run production build
-npm run lint    # ESLint
+npm install          # Install dependencies
+npm run dev          # Start development server (http://localhost:3000)
+npm run build        # Create production build
+npm run start        # Run the production build locally
+npm run lint         # Run ESLint linting
+# No test framework is configured – add one if needed.
 ```
 
-No test framework is configured.
+### Running a single test (if tests are added later)
 
-## Conventions
+If a test runner like `jest` or `vitest` is introduced, individual tests can be run with:
 
-- Path alias `@/*` maps to `./src/*` (in tsconfig, use instead of deep relative imports)
-- `"use client"` on interactive components; API routes are implicitly server-side
-- API keys must stay server-side only (API routes, never client components)
-- Token counter is approximate (`code.length / 4`), localStorage limit is 100k tokens
-- No Prettier — rely on ESLint for code style
+```bash
+npm test -- <path/to/testfile>
+```
+
+## Conventions & Gotchas
+
+- Use the `@/*` alias for imports rather than deep relative paths.
+- Mark interactive components with `'use client'`; API routes are server‑only by default.
+- Keep API keys in `.env.local`; **never** expose them to client code.
+- Token usage is approximated (`code.length / 4`). The UI caps at 100 k tokens stored in `localStorage`.
+- No Prettier – rely on ESLint's auto‑fixes for formatting.
+- Streaming responses via `ReadableStream` are broken in this Next.js version; the API returns a plain JSON payload.

@@ -1,19 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import rateLimiter from './middleware';
+
+import { withRequestLogging } from './logger';
+import { setRateLimitHeaders, MAX_REQUESTS } from './middleware';
+
 export async function POST(req: NextRequest) {
+  const start = Date.now();
   const { code, language } = await req.json();
 
+  // Apply rate limiting
+  const limitResponse = await rateLimiter(req);
+  if (limitResponse) return limitResponse;
+
   if (!code?.trim()) {
-    return NextResponse.json({ error: "No code provided" }, { status: 400 });
+    return setRateLimitHeaders(withRequestLogging(start, req, NextResponse.json({ error: "No code provided" }, { status: 400 })), MAX_REQUESTS);
   }
 
-  if (code.length > 200000) {
-    return NextResponse.json({ error: "Code too large (max 200,000 characters)" }, { status: 400 });
+  if (code.length > 50000) {
+    return setRateLimitHeaders(withRequestLogging(start, req, NextResponse.json({ error: "Code too large (max 50,000 characters)" }, { status: 400 })), MAX_REQUESTS);
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  // OpenRouter keys are expected to be in the format 'sk-or-v1-' followed by 64 alphanumeric chars
+  if (!apiKey || !/^sk-or-v1-[a-zA-Z0-9]{64}$/.test(apiKey)) {
+    return setRateLimitHeaders(withRequestLogging(start, req, NextResponse.json({ error: 'OpenRouter API key is invalid or not configured' }, { status: 500 })), MAX_REQUESTS);
   }
 
   const safeLanguage = typeof language === "string" && /^[a-zA-Z0-9_\-]+$/.test(language)
     ? language
     : "plaintext";
+
+  // Sanitize code to prevent prompt injection via closing fenced code blocks early
+  const sanitizedCode = code.replace(/```/g, '\\`\\`\\`');
 
   const prompt = `Review this ${safeLanguage} code. For each dimension rate it: ✅ Good / ⚠️ Issues / 🚨 Critical.
 
@@ -26,7 +45,7 @@ export async function POST(req: NextRequest) {
 Then list: Top 3 fixes, then 1-2 positive highlights.
 
 \`\`\`${safeLanguage}
-${code}
+${sanitizedCode}
 \`\`\``;
 
   try {
