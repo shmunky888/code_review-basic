@@ -1,40 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import rateLimiter from './middleware';
-
 import { withRequestLogging } from './logger';
-import { setRateLimitHeaders, MAX_REQUESTS } from './middleware';
+import { setRateLimitHeaders } from './middleware';
+import { config } from './config';
 
 export async function POST(req: NextRequest) {
   const start = Date.now();
-  const { code, language } = await req.json();
 
-  // Apply rate limiting
-  const limitResponse = await rateLimiter(req);
-  if (limitResponse) return limitResponse;
-
-  if (!code?.trim()) {
-    return setRateLimitHeaders(withRequestLogging(start, req, NextResponse.json({ error: "No code provided" }, { status: 400 })), MAX_REQUESTS);
+  // 1. Centralized Secret/Config Validation check
+  if (!config.isValid) {
+    return withRequestLogging(
+      start,
+      req,
+      NextResponse.json(
+        { error: `Server configuration error: ${config.errors.join('; ')}` },
+        { status: 500 }
+      )
+    );
   }
 
-  if (code.length > 50000) {
-    return setRateLimitHeaders(withRequestLogging(start, req, NextResponse.json({ error: "Code too large (max 50,000 characters)" }, { status: 400 })), MAX_REQUESTS);
-  }
+  try {
+    const { code, language } = await req.json();
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  // OpenRouter keys are expected to be in the format 'sk-or-v1-' followed by 64 alphanumeric chars
-  if (!apiKey || !/^sk-or-v1-[a-zA-Z0-9]{64}$/.test(apiKey)) {
-    return setRateLimitHeaders(withRequestLogging(start, req, NextResponse.json({ error: 'OpenRouter API key is invalid or not configured' }, { status: 500 })), MAX_REQUESTS);
-  }
+    // 2. Apply rate limiting
+    const limitResponse = await rateLimiter(req);
+    if (limitResponse) return limitResponse;
 
-  const safeLanguage = typeof language === "string" && /^[a-zA-Z0-9_\-]+$/.test(language)
-    ? language
-    : "plaintext";
+    const remaining = Number(req.headers.get('x-ratelimit-remaining') ?? config.rateLimitMax);
 
-  // Sanitize code to prevent prompt injection via closing fenced code blocks early
-  const sanitizedCode = code.replace(/```/g, '\\`\\`\\`');
+    if (!code?.trim()) {
+      return setRateLimitHeaders(
+        withRequestLogging(start, req, NextResponse.json({ error: "No code provided" }, { status: 400 })),
+        remaining
+      );
+    }
 
-  const prompt = `Review this ${safeLanguage} code. For each dimension rate it: ✅ Good / ⚠️ Issues / 🚨 Critical.
+    if (code.length > 50000) {
+      return setRateLimitHeaders(
+        withRequestLogging(start, req, NextResponse.json({ error: "Code too large (max 50,000 characters)" }, { status: 400 })),
+        remaining
+      );
+    }
+
+    const safeLanguage = typeof language === "string" && /^[a-zA-Z0-9_\-]+$/.test(language)
+      ? language
+      : "plaintext";
+
+    // Sanitize code to prevent prompt injection via closing fenced code blocks early
+    const sanitizedCode = code.replace(/```/g, '\\`\\`\\`');
+
+    const prompt = `Review this ${safeLanguage} code. For each dimension rate it: ✅ Good / ⚠️ Issues / 🚨 Critical.
 
 1. Security — vulnerabilities, input validation, exposed secrets
 2. Code Organization — naming, dead code, DRY violations
@@ -48,12 +63,11 @@ Then list: Top 3 fixes, then 1-2 positive highlights.
 ${sanitizedCode}
 \`\`\``;
 
-  try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${config.openRouterApiKey}`,
       },
       body: JSON.stringify({
         model: "openrouter/owl-alpha",
@@ -68,9 +82,12 @@ ${sanitizedCode}
         const data = await res.json();
         errorMsg = data?.error?.message || errorMsg;
       } catch {
-        // Non-JSON error response (e.g. HTML from a 502)
+        // Non-JSON error response
       }
-      return NextResponse.json({ error: errorMsg }, { status: 500 });
+      return setRateLimitHeaders(
+        withRequestLogging(start, req, NextResponse.json({ error: errorMsg }, { status: 500 })),
+        remaining
+      );
     }
 
     const data = await res.json();
@@ -78,12 +95,22 @@ ${sanitizedCode}
     const usage = data.usage;
 
     if (!content) {
-      return NextResponse.json({ error: "No content in response" }, { status: 500 });
+      return setRateLimitHeaders(
+        withRequestLogging(start, req, NextResponse.json({ error: "No content in response" }, { status: 500 })),
+        remaining
+      );
     }
 
-    return NextResponse.json({ content, usage });
+    return setRateLimitHeaders(
+      withRequestLogging(start, req, NextResponse.json({ content, usage })),
+      remaining
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Review failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const remaining = Number(req.headers.get('x-ratelimit-remaining') ?? config.rateLimitMax);
+    return setRateLimitHeaders(
+      withRequestLogging(start, req, NextResponse.json({ error: message }, { status: 500 })),
+      remaining
+    );
   }
 }
