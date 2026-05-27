@@ -33,6 +33,8 @@ An AI-powered code-review web tool. Users paste code, pick a language, and get a
 | `npx jest --testPathPattern security.test` | Run security/rate-limiter tests only |
 | `npx jest --testPathPattern Navbar.test` | Run Navbar component test only |
 | `npm run lint` | ESLint |
+| `npm run test -- --watch` | Run tests in watch mode |
+| `npm run test -- --coverage` | Run tests with coverage report |
 
 ## Architecture
 
@@ -68,6 +70,8 @@ src/
 - **`middleware.ts`** — Exports `rateLimiter(req)` returning `NextResponse | undefined` (undefined = allow). Also exports `InMemoryStore`, `UpstashRedisStore`, `getClientIp`, `isValidApiKey`, `isValidIp`, `setRateLimitHeaders`. Falls back to in-memory store on Redis errors.
 - **`route.ts`** — Does NOT stream. Returns plain `NextResponse.json()`. Tracks token usage via `localStorage` on the client side (100k token limit).
 - **`page.tsx`** — Client component with `MarkdownView` that renders headings, lists, bold, and paragraphs from the AI response. Token budget is tracked in `localStorage` under key `codereview_tokens_used`.
+- **`jest.setup.ts`** — Test setup file that polyfills web APIs (`Request`, `Headers`, `Response`, `fetch`) for node environment.
+- **`globals.css`** — Tailwind CSS v4 entry point with dark mode configuration.
 
 ### Environment Variables
 
@@ -82,3 +86,11 @@ src/
 | `UPSTASH_REDIS_REST_TOKEN` | No | Required if URL is set |
 
 `.env.local` is tracked in git — **do not commit new secrets**.
+
+## Development Guidelines
+
+- When modifying API routes, remember that streaming is broken — always use JSON responses.
+- The `@/*` path alias maps to `./src/*` for imports.
+- Test files are located in `__tests__` directory at the root of `src`.
+- ESLint follows Next.js recommended rules via `eslint-config-next`.
+- Tailwind CSS v4 uses the new `@import "tailwindcss"` syntax.

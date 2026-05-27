@@ -194,7 +194,7 @@ export default function Home() {
           </button>
 
           <div className="text-xs text-zinc-500 dark:text-zinc-400">
-            Estimated tokens left: {(TOKEN_LIMIT - tokensUsed).toLocaleString()} / {TOKEN_LIMIT.toLocaleString()}
+            Tokens left: {(TOKEN_LIMIT - tokensUsed).toLocaleString()} / {TOKEN_LIMIT.toLocaleString()}
           </div>
         </div>
 
