@@ -5,6 +5,7 @@
 
 export interface AppConfig {
   openRouterApiKey: string;
+  openRouterModel: string;
   rateLimitWindowMs: number;
   rateLimitMax: number;
   reviewApiKeys: string[];
@@ -21,11 +22,17 @@ function validateConfig(): AppConfig {
   const openRouterApiKey = process.env.OPENROUTER_API_KEY ?? '';
   if (!openRouterApiKey) {
     errors.push('OPENROUTER_API_KEY is not defined in environment variables.');
-  } else if (!/^sk-or-v1-[a-zA-Z0-9]{64}$/.test(openRouterApiKey)) {
-    errors.push('OPENROUTER_API_KEY is malformed. Expected format: sk-or-v1- followed by 64 alphanumeric characters.');
+  } else if (!openRouterApiKey.startsWith('sk-or-v1-') || openRouterApiKey.length < 32) {
+    errors.push('OPENROUTER_API_KEY is malformed. Expected format: sk-or-v1- followed by the API key secret.');
   }
 
-  // 2. Rate Limit Window Validation (must be positive integer)
+  // 2. OpenRouter Model validation
+  const openRouterModel = process.env.OPENROUTER_MODEL?.trim() || 'openrouter/owl-alpha';
+  if (!openRouterModel || openRouterModel.length > 128) {
+    errors.push('OPENROUTER_MODEL is invalid. Must be a non-empty string up to 128 characters.');
+  }
+
+  // 3. Rate Limit Window Validation (must be positive integer)
   let rateLimitWindowMs = 60000; // Default: 1 minute
   const rawWindow = process.env.RATE_LIMIT_WINDOW_MS;
   if (rawWindow !== undefined) {
@@ -37,7 +44,7 @@ function validateConfig(): AppConfig {
     }
   }
 
-  // 3. Rate Limit Max Validation (must be positive integer)
+  // 4. Rate Limit Max Validation (must be positive integer)
   let rateLimitMax = 60; // Default: 60 requests
   const rawMax = process.env.RATE_LIMIT_MAX;
   if (rawMax !== undefined) {
@@ -49,7 +56,7 @@ function validateConfig(): AppConfig {
     }
   }
 
-  // 4. Whitelisted Review API Keys validation
+  // 5. Whitelisted Review API Keys validation
   const reviewApiKeys: string[] = [];
   const rawReviewKeys = process.env.REVIEW_API_KEYS;
   if (rawReviewKeys) {
@@ -65,7 +72,7 @@ function validateConfig(): AppConfig {
     }
   }
 
-  // 5. Upstash Redis configurations for serverless rate limiting (optional)
+  // 6. Upstash Redis configurations for serverless rate limiting (optional)
   const upstashRedisRestUrl = process.env.UPSTASH_REDIS_REST_URL?.trim();
   const upstashRedisRestToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
 
@@ -84,6 +91,7 @@ function validateConfig(): AppConfig {
 
   return {
     openRouterApiKey,
+    openRouterModel,
     rateLimitWindowMs,
     rateLimitMax,
     reviewApiKeys,

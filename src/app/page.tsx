@@ -6,6 +6,87 @@ import { useState, useEffect } from "react";
 const TOKEN_LIMIT = 100000;
 const STORAGE_KEY = "codereview_tokens_used";
 
+function MarkdownView({ text }: { text: string }) {
+  const lines = text.split("\n");
+  let inList = false;
+  const elements: React.ReactNode[] = [];
+  let listItems: React.ReactNode[] = [];
+
+  const flushList = (key: number) => {
+    if (listItems.length > 0) {
+      elements.push(
+        <ul key={`list-${key}`} className="my-2 list-disc pl-5 space-y-1 text-zinc-700 dark:text-zinc-300">
+          {listItems}
+        </ul>
+      );
+      listItems = [];
+      inList = false;
+    }
+  };
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("### ")) {
+      flushList(index);
+      elements.push(
+        <h3 key={index} className="mt-4 mb-2 text-md font-bold text-zinc-900 dark:text-zinc-100">
+          {trimmed.slice(4)}
+        </h3>
+      );
+    } else if (trimmed.startsWith("## ")) {
+      flushList(index);
+      elements.push(
+        <h2 key={index} className="mt-5 mb-2 text-lg font-bold text-zinc-900 dark:text-zinc-100">
+          {trimmed.slice(3)}
+        </h2>
+      );
+    } else if (trimmed.startsWith("# ")) {
+      flushList(index);
+      elements.push(
+        <h1 key={index} className="mt-6 mb-3 text-xl font-bold text-zinc-900 dark:text-zinc-100">
+          {trimmed.slice(2)}
+        </h1>
+      );
+    } else if (/^\d+\.\s+/.test(trimmed)) {
+      flushList(index);
+      const boldParts = trimmed.split("**");
+      const renderedContent = boldParts.map((part, idx) => 
+        idx % 2 === 1 ? <strong key={idx} className="font-semibold text-zinc-900 dark:text-zinc-50">{part}</strong> : part
+      );
+      elements.push(
+        <div key={index} className="mt-4 mb-1 text-sm font-bold text-zinc-800 dark:text-zinc-200">
+          {renderedContent}
+        </div>
+      );
+    } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+      inList = true;
+      const content = trimmed.slice(2);
+      const boldParts = content.split("**");
+      const renderedContent = boldParts.map((part, idx) => 
+        idx % 2 === 1 ? <strong key={idx} className="font-semibold text-zinc-900 dark:text-zinc-50">{part}</strong> : part
+      );
+      listItems.push(<li key={`li-${index}`} className="text-sm leading-6">{renderedContent}</li>);
+    } else if (trimmed === "") {
+      flushList(index);
+      elements.push(<div key={index} className="h-2" />);
+    } else {
+      flushList(index);
+      const boldParts = line.split("**");
+      const renderedContent = boldParts.map((part, idx) => 
+        idx % 2 === 1 ? <strong key={idx} className="font-semibold text-zinc-900 dark:text-zinc-50">{part}</strong> : part
+      );
+      elements.push(
+        <p key={index} className="my-1 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          {renderedContent}
+        </p>
+      );
+    }
+  });
+
+  flushList(lines.length);
+  return <div className="space-y-1">{elements}</div>;
+}
+
 export default function Home() {
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("typescript");
@@ -62,7 +143,8 @@ export default function Home() {
         localStorage.setItem(STORAGE_KEY, String(next));
         return next;
       });
-    } catch {
+    } catch (err) {
+      console.error('Review API fetch failed:', err);
       setError("Failed to connect to review API");
     }
 
@@ -112,7 +194,7 @@ export default function Home() {
           </button>
 
           <div className="text-xs text-zinc-500 dark:text-zinc-400">
-            Tokens left: {(TOKEN_LIMIT - tokensUsed).toLocaleString()} / {TOKEN_LIMIT.toLocaleString()}
+            Estimated tokens left: {(TOKEN_LIMIT - tokensUsed).toLocaleString()} / {TOKEN_LIMIT.toLocaleString()}
           </div>
         </div>
 
@@ -135,9 +217,7 @@ export default function Home() {
           ) : (
             <>
             <div className="custom-scrollbar h-[32rem] overflow-auto rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-              <pre className="whitespace-pre-wrap font-sans text-sm leading-7 text-zinc-800 dark:text-zinc-200">
-                {report}
-              </pre>
+              <MarkdownView text={report} />
             </div>
             {(promptTokens > 0 || completionTokens > 0) && (
               <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">

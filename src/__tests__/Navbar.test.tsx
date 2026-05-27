@@ -12,17 +12,20 @@ jest.mock('next/image', () => ({
 }))
 
 describe('Navbar', () => {
-  it('renders the navbar brand link and avatar image', () => {
+  it('renders the navbar brand link with accessible name and avatar image', () => {
     render(<Navbar />)
-    
-    // Check if the link to homepage exists
-    const link = screen.getByRole('link')
+
+    // Link has explicit accessible text, not relying on child image alt
+    const link = screen.getByRole('link', { name: /code review/i })
     expect(link).toBeInTheDocument()
     expect(link).toHaveAttribute('href', '/')
-    
-    // Check if the avatar image exists
-    const avatarImg = screen.getByAltText('Avatar')
-    expect(avatarImg).toBeInTheDocument()
+
+    // Brand text is visible alongside the avatar
+    expect(screen.getByText('Code Review')).toBeInTheDocument()
+
+    // Avatar image is decorative (empty alt), verify it exists by src
+    const avatarImg = screen.queryByAltText('') as HTMLImageElement
+    expect(avatarImg).not.toBeNull()
     expect(avatarImg).toHaveAttribute('src', '/avatar.png')
   })
 })

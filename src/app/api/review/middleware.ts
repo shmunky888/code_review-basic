@@ -34,29 +34,32 @@ export function isValidIp(ip: string): boolean {
  * Resolves the client IP by inspecting standard proxy headers in order of trustworthiness.
  */
 export function getClientIp(req: NextRequest): string | null {
-  const headersToCheck = [
-    'cf-connecting-ip',
-    'x-client-ip',
-    'x-real-ip',
-    'x-forwarded-for',
-  ];
-
-  for (const header of headersToCheck) {
-    const value = req.headers.get(header);
-    if (value) {
-      if (header === 'x-forwarded-for') {
-        const ip = value.split(',')[0].trim();
-        if (isValidIp(ip)) return ip;
-      } else {
-        const ip = value.trim();
-        if (isValidIp(ip)) return ip;
-      }
-    }
+  // Prioritize secure platform IP determined by the hosting edge provider (e.g. Vercel)
+  const secureIp = (req as any).ip;
+  if (secureIp && isValidIp(secureIp)) {
+    return secureIp;
   }
 
-  const reqIp = (req as any).ip;
-  if (reqIp && isValidIp(reqIp)) {
-    return reqIp;
+  // Fallback to proxy headers in order of precedence: cf-connecting-ip, x-client-ip, x-real-ip, x-forwarded-for
+  const cfConnectingIp = req.headers.get('cf-connecting-ip');
+  if (cfConnectingIp && isValidIp(cfConnectingIp.trim())) {
+    return cfConnectingIp.trim();
+  }
+
+  const xClientIp = req.headers.get('x-client-ip');
+  if (xClientIp && isValidIp(xClientIp.trim())) {
+    return xClientIp.trim();
+  }
+
+  const xRealIp = req.headers.get('x-real-ip');
+  if (xRealIp && isValidIp(xRealIp.trim())) {
+    return xRealIp.trim();
+  }
+
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    const ip = forwardedFor.split(',')[0].trim();
+    if (isValidIp(ip)) return ip;
   }
 
   return null;
@@ -123,37 +126,47 @@ export class UpstashRedisStore implements RateLimitStore {
     const ttlSeconds = Math.ceil(windowMs / 1000) + 10;
     const uniqueMember = `${now}-${Math.random().toString(36).substring(2, 8)}`;
 
-    const response = await fetch(`${this.url}/pipeline`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify([
-        ['ZREMRANGEBYSCORE', redisKey, '-inf', `(${clearBefore}`],
-        ['ZADD', redisKey, String(now), uniqueMember],
-        ['ZCARD', redisKey],
-        ['EXPIRE', redisKey, String(ttlSeconds)],
-      ]),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout limit
 
-    if (!response.ok) {
-      throw new Error(`Upstash Redis REST API failed: ${response.statusText}`);
+    try {
+      const response = await fetch(`${this.url}/pipeline`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([
+          ['ZREMRANGEBYSCORE', redisKey, '-inf', `(${clearBefore}`],
+          ['ZADD', redisKey, String(now), uniqueMember],
+          ['ZCARD', redisKey],
+          ['EXPIRE', redisKey, String(ttlSeconds)],
+        ]),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Upstash Redis REST API failed: ${response.statusText}`);
+      }
+
+      const results = await response.json();
+      const countResult = results[2];
+      if (countResult.error) {
+        throw new Error(`Upstash Redis command error: ${countResult.error}`);
+      }
+
+      const count = Number(countResult.result);
+      const remaining = Math.max(0, limit - count);
+
+      return {
+        limited: count > limit,
+        remaining,
+      };
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw err;
     }
-
-    const results = await response.json();
-    const countResult = results[2];
-    if (countResult.error) {
-      throw new Error(`Upstash Redis command error: ${countResult.error}`);
-    }
-
-    const count = Number(countResult.result);
-    const remaining = Math.max(0, limit - count);
-
-    return {
-      limited: count > limit,
-      remaining,
-    };
   }
 }
 
