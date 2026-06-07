@@ -8,7 +8,6 @@ const STORAGE_KEY = "codereview_tokens_used";
 
 function MarkdownView({ text }: { text: string }) {
   const lines = text.split("\n");
-  let inList = false;
   const elements: React.ReactNode[] = [];
   let listItems: React.ReactNode[] = [];
 
@@ -20,7 +19,6 @@ function MarkdownView({ text }: { text: string }) {
         </ul>
       );
       listItems = [];
-      inList = false;
     }
   };
 
@@ -59,7 +57,6 @@ function MarkdownView({ text }: { text: string }) {
         </div>
       );
     } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-      inList = true;
       const content = trimmed.slice(2);
       const boldParts = content.split("**");
       const renderedContent = boldParts.map((part, idx) => 
@@ -181,19 +178,29 @@ export default function Home() {
             onChange={(e) => setCode(e.target.value)}
             disabled={isReviewing}
             placeholder="Paste your code here..."
-            className="h-80 w-full resize-none rounded-lg border border-zinc-300 bg-zinc-50 p-4 font-mono text-sm leading-6 text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-80 w-full resize-none rounded-lg border border-zinc-300 bg-zinc-50 p-4 font-mono text-sm leading-6 text-zinc-900 placeholder:text-zinc-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
             spellCheck={false}
           />
 
           <button
             onClick={handleReview}
             disabled={!code.trim() || isReviewing || tokensUsed >= TOKEN_LIMIT}
-            className="rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 flex items-center justify-center gap-2"
           >
-            {isReviewing ? "Reviewing..." : "Run Review"}
+            {isReviewing ? (
+              <>
+                <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent dark:border-white dark:border-t-transparent" />
+                <span>Reviewing...</span>
+              </>
+            ) : (
+              "Run Review"
+            )}
           </button>
 
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">
+          <div
+            className="text-xs text-zinc-500 dark:text-zinc-400"
+            title="Token budget resets on page refresh. This limit prevents excessive API usage."
+          >
             Tokens left: {(TOKEN_LIMIT - tokensUsed).toLocaleString()} / {TOKEN_LIMIT.toLocaleString()}
           </div>
         </div>
@@ -207,12 +214,23 @@ export default function Home() {
               {error}
             </div>
           ) : !report ? (
-            <div className="flex h-80 items-center justify-center rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700">
-              <p className="text-sm text-zinc-500">
+            <div className="flex h-80 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
+              <p className="text-sm text-zinc-500 mb-4">
                 {code.trim()
                   ? 'Click "Run Review" to analyze your code'
                   : "Paste some code and run a review"}
               </p>
+              {!code.trim() && (
+                <div className="max-w-sm text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="font-medium mb-2">You'll get:</p>
+                  <ul className="space-y-1 pl-4">
+                    <li>• Security vulnerabilities</li>
+                    <li>• Code organization issues</li>
+                    <li>• Readability feedback</li>
+                    <li>• Architecture suggestions</li>
+                  </ul>
+                </div>
+              )}
             </div>
           ) : (
             <>

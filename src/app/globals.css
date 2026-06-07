@@ -43,3 +43,10 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   opacity: 0.7;
 }
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation: none;
+  }
+}
