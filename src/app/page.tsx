@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const TOKEN_LIMIT = 100000;
 const STORAGE_KEY = "codereview_tokens_used";
@@ -89,17 +89,20 @@ export default function Home() {
   const [report, setReport] = useState("");
   const [promptTokens, setPromptTokens] = useState(0);
   const [completionTokens, setCompletionTokens] = useState(0);
-  const [tokensUsed, setTokensUsed] = useState(() => {
-    if (typeof window === "undefined") return 0;
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const parsed = stored ? Number(stored) : 0;
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-  });
+  const [tokensUsed, setTokensUsed] = useState(0);
   const [error, setError] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
   const [statusMessage, setStatusMessage] = useState("Ready to review code.");
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
 
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const parsed = stored ? Number(stored) : 0;
+    if (Number.isFinite(parsed) && parsed > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTokensUsed(parsed);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isReviewing && (report || error)) {
@@ -111,7 +114,7 @@ export default function Home() {
   const isNearTokenLimit = tokensLeft <= 10000 && tokensLeft > 0;
   const hasReachedTokenLimit = tokensLeft <= 0;
 
-  const handleReview = async () => {
+  const handleReview = useCallback(async () => {
     if (!code.trim()) return;
     setIsReviewing(true);
     setReport("");
@@ -157,7 +160,21 @@ export default function Home() {
     }
 
     setIsReviewing(false);
-  };
+  }, [code, language]);
+
+  // Keyboard shortcut for review (Cmd/Ctrl + Enter)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (code.trim() && !isReviewing && !hasReachedTokenLimit) {
+          handleReview();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [code, isReviewing, hasReachedTokenLimit, handleReview]);
 
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
@@ -165,7 +182,10 @@ export default function Home() {
         {statusMessage}
       </p>
 
-      <h1 className="mb-2 text-2xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">Code Review</h1>
+      <div className="flex items-end gap-3 mb-2">
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">Code Review</h1>
+        <div className="h-0.5 w-8 bg-zinc-950 dark:bg-zinc-50" aria-hidden="true"></div>
+      </div>
       <p className="mb-6 max-w-2xl text-sm leading-6 text-zinc-700 dark:text-zinc-300">
         Paste a focused code sample and get a structured review with security, readability, architecture, and logic feedback.
       </p>
@@ -182,6 +202,7 @@ export default function Home() {
               value={language}
               disabled={isReviewing}
               onChange={(e) => setLanguage(e.target.value)}
+              title="Select the programming language for your code review"
               className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-zinc-700 dark:bg-zinc-900 dark:focus-visible:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="typescript">TypeScript</option>
@@ -219,6 +240,9 @@ export default function Home() {
               "Run Review"
             )}
           </button>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Press <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">⌘</kbd><kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">Enter</kbd> to review
+          </p>
 
           <div
             id="token-guidance"
@@ -253,9 +277,16 @@ export default function Home() {
             <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               <p className="font-medium">Review could not complete.</p>
               <p className="mt-1">{error}</p>
-              <p className="mt-2 text-xs text-red-700 dark:text-red-200">
-                Edit your snippet, then select “Run Review” again.
-              </p>
+              <button
+                onClick={() => {
+                  setError("");
+                  setReport("");
+                  setCode("");
+                }}
+                className="mt-2 text-xs font-medium text-red-700 underline hover:text-red-900 dark:text-red-200"
+              >
+                Clear and try again
+              </button>
             </div>
           ) : !report ? (
             <div className="flex h-80 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
@@ -271,6 +302,21 @@ export default function Home() {
                     <li>• Readability feedback</li>
                     <li>• Architecture suggestions</li>
                   </ul>
+                  <details className="mt-4">
+                    <summary className="cursor-pointer font-medium">Example review</summary>
+                    <pre className="mt-2 rounded bg-zinc-100 p-2 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                      <code>{`/**
+ * Calculates total price with tax
+ */
+function calc(items) {
+  let t = 0;
+  for (let i = 0; i < items.length; i++) {
+    t += items[i].price * items[i].qty;
+  }
+  return t * 1.08;
+}`}</code>
+                    </pre>
+                  </details>
                 </div>
               )}
             </div>
