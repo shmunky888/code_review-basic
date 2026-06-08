@@ -103,16 +103,14 @@ components:
 
 **Creative North Star: "The Bench Light"**
 
-Code Review currently uses a flat, restrained interface that behaves like a clean workbench: a place to paste code, run a review, and read findings without decorative interference. The system is mostly white, zinc, and near-black, with borders doing the work that shadows often do elsewhere.
-
-The brand context asks for minimalism and explicitly rejects dark-purple AI SaaS. This design system should preserve the plainspoken restraint in the existing UI while giving future landing work enough structure to feel intentional rather than default.
+Code Review is a restrained, precision-focused interface that behaves like a clean workbench: a place to paste code, run a review, and read findings without decorative interference. The system uses a flat, restrained interface with borders doing the work that shadows often do elsewhere.
 
 **Key Characteristics:**
-- Restrained monochrome foundation with sparse state color.
-- Flat surfaces, visible borders, and compact radii.
-- Geist sans for product language, Geist Mono only where code is the material.
-- Clear two-column working layout on desktop, stacked flow on smaller screens.
-- No glossy AI motifs, neon gradients, or dark-purple presentation tropes.
+- Restrained monochrome foundation with sparse state color
+- Flat surfaces, visible borders, and compact radii
+- Geist sans for product language, Geist Mono only where code is the material
+- Clear two-column working layout on desktop, stacked flow on smaller screens
+- No glossy AI motifs, neon gradients, or dark-purple presentation tropes
 
 ## 2. Colors
 
@@ -149,7 +147,7 @@ The current palette is monochrome and functional: white and near-black define th
 
 **Display Font:** Geist, with Arial, Helvetica, sans-serif fallback.
 **Body Font:** Geist, with Arial, Helvetica, sans-serif fallback.
-**Label/Mono Font:** Geist Mono for code input and code-adjacent material only.
+**Label/Mono Font:** Geist Mono for code input and code-specific surfaces only.
 
 **Character:** The type system is plain, compact, and work-focused. It gets hierarchy from weight and spacing rather than expressive font pairing.
 
@@ -178,6 +176,7 @@ This system uses no shadows in the current UI. Depth is conveyed through tonal l
 - **Primary:** `zinc-900` background with white text in light mode, inverted to soft white with zinc text in dark mode. Padding is 10px vertical and 20px horizontal.
 - **Hover / Focus:** Hover shifts one zinc step, `transition-colors` handles the state. Add `focus-visible` rings when refining buttons so keyboard users receive the same clarity as textarea focus.
 - **Disabled:** Cursor changes to not-allowed and opacity drops to 50 percent.
+- **Keyboard Shortcut:** `⌘/Ctrl + Enter` triggers review when code is present.
 
 ### Chips
 - **Style:** Token usage metadata appears as a small chip with `zinc-100` background in light mode and `zinc-800` in dark mode.
@@ -215,7 +214,7 @@ This system uses no shadows in the current UI. Depth is conveyed through tonal l
 
 ### Don't:
 - **Don't** make this dark-purple AI SaaS.
-- **Don't** use neon gradients, glossy AI motifs, glass panels, or template-like hero metrics.
+- **Don't** use neon gradients, glossy AI motifs, glass panels, or template-like hero sections.
 - **Don't** use gradient text or repeated tiny uppercase section eyebrows.
 - **Don't** use monospace for all brand copy just because the audience is developers.
 - **Don't** pair 1px borders with large soft shadows on cards or buttons.
