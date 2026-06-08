@@ -34,8 +34,8 @@ export function isValidIp(ip: string): boolean {
  * Resolves the client IP by inspecting standard proxy headers in order of trustworthiness.
  */
 export function getClientIp(req: NextRequest): string | null {
-  // Prioritize secure platform IP determined by the hosting edge provider (e.g. Vercel)
-  const secureIp = (req as any).ip;
+  // NextRequest.ip is not typed by Next.js but may be set by platform (e.g. Vercel)
+  const secureIp: string | undefined = (req as { ip?: string }).ip;
   if (secureIp && isValidIp(secureIp)) {
     return secureIp;
   }

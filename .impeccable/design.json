@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-07T19:05:17Z",
+  "title": "Design System: Code Review",
+  "extensions": {
+    "colorMeta": {
+      "white": {
+        "role": "neutral",
+        "displayName": "Pure White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.28 0 0)", "oklch(0.42 0 0)", "oklch(0.56 0 0)", "oklch(0.70 0 0)", "oklch(0.82 0 0)", "oklch(0.92 0 0)", "oklch(1.00 0 0)"]
+      },
+      "graphite-ink": {
+        "role": "neutral",
+        "displayName": "Graphite Ink",
+        "canonical": "#171717",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.24 0 0)", "oklch(0.34 0 0)", "oklch(0.46 0 0)", "oklch(0.58 0 0)", "oklch(0.72 0 0)", "oklch(0.86 0 0)", "oklch(0.96 0 0)"]
+      },
+      "zinc-500": {
+        "role": "neutral",
+        "displayName": "Zinc Muted",
+        "canonical": "#71717a",
+        "tonalRamp": ["oklch(0.15 0.005 285)", "oklch(0.26 0.006 285)", "oklch(0.38 0.007 285)", "oklch(0.50 0.008 285)", "oklch(0.62 0.008 285)", "oklch(0.74 0.007 285)", "oklch(0.86 0.006 285)", "oklch(0.95 0.005 285)"]
+      },
+      "focus-blue": {
+        "role": "secondary",
+        "displayName": "Field Blue",
+        "canonical": "#3b82f6",
+        "tonalRamp": ["oklch(0.18 0.08 260)", "oklch(0.28 0.11 260)", "oklch(0.40 0.15 260)", "oklch(0.53 0.18 260)", "oklch(0.64 0.20 260)", "oklch(0.75 0.16 260)", "oklch(0.86 0.10 260)", "oklch(0.95 0.04 260)"]
+      },
+      "error-text": {
+        "role": "tertiary",
+        "displayName": "Review Red",
+        "canonical": "#991b1b",
+        "tonalRamp": ["oklch(0.18 0.08 25)", "oklch(0.28 0.12 25)", "oklch(0.40 0.15 25)", "oklch(0.52 0.16 25)", "oklch(0.64 0.13 25)", "oklch(0.76 0.09 25)", "oklch(0.88 0.05 25)", "oklch(0.96 0.02 25)"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page title and future brand hero baseline."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings and result area labels."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Review prose, empty states, and supporting copy."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Code input and code-specific material only."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "color-state",
+        "value": "transition-colors",
+        "purpose": "Default button color transition for hover and disabled state changes."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "@media (prefers-reduced-motion: reduce)",
+        "purpose": "Future animation should collapse to instant or crossfade transitions."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ],
+    "futureBrandSeed": {
+      "source": "impeccable palette seed-131",
+      "anchor": "oklch(0.450 0.180 270.0)",
+      "note": "The current code does not implement this indigo seed. Treat it as optional future brand direction, not an extracted token."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action for running a code review.",
+      "html": "<button class=\"ds-btn-primary\">Run Review</button>",
+      "css": ".ds-btn-primary { background: #18181b; color: #ffffff; border: 0; border-radius: 8px; padding: 10px 20px; font: 500 14px/1.5 Geist, Arial, Helvetica, sans-serif; transition: background-color 150ms ease-out, opacity 150ms ease-out; cursor: pointer; } .ds-btn-primary:hover { background: #27272a; } .ds-btn-primary:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; } .ds-btn-primary:active { background: #3f3f46; } .ds-btn-primary:disabled { cursor: not-allowed; opacity: 0.5; }"
+    },
+    {
+      "name": "Code Textarea",
+      "kind": "input",
+      "refersTo": "input-code",
+      "description": "Monospace code input with visible border and blue focus state.",
+      "html": "<textarea class=\"ds-code-field\" placeholder=\"Paste your code here...\"></textarea>",
+      "css": ".ds-code-field { width: 100%; min-height: 320px; resize: none; border: 1px solid #d4d4d8; border-radius: 8px; background: #fafafa; color: #18181b; padding: 16px; font: 400 14px/1.5 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; } .ds-code-field::placeholder { color: #71717a; } .ds-code-field:focus { border-color: #3b82f6; outline: 1px solid #3b82f6; outline-offset: 0; } .ds-code-field:disabled { cursor: not-allowed; opacity: 0.5; }"
+    },
+    {
+      "name": "Language Select",
+      "kind": "input",
+      "description": "Compact language selector paired with a text label.",
+      "html": "<label class=\"ds-select-label\">Language <select class=\"ds-select\"><option>TypeScript</option><option>JavaScript</option><option>Python</option><option>Go</option></select></label>",
+      "css": ".ds-select-label { display: inline-flex; align-items: center; gap: 12px; color: #3f3f46; font: 500 14px/1.5 Geist, Arial, Helvetica, sans-serif; } .ds-select { border: 1px solid #d4d4d8; border-radius: 6px; background: #ffffff; color: #171717; padding: 6px 12px; font: 400 14px/1.5 Geist, Arial, Helvetica, sans-serif; } .ds-select:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; } .ds-select:disabled { cursor: not-allowed; opacity: 0.5; }"
+    },
+    {
+      "name": "Result Panel",
+      "kind": "card",
+      "refersTo": "result-panel",
+      "description": "Scrollable review output container.",
+      "html": "<section class=\"ds-result-panel\"><h2>Results</h2><p>Review findings appear here with compact headings, lists, and emphasis.</p></section>",
+      "css": ".ds-result-panel { max-height: 512px; overflow: auto; border: 1px solid #e4e4e7; border-radius: 8px; background: #ffffff; color: #3f3f46; padding: 24px; font: 400 14px/1.5 Geist, Arial, Helvetica, sans-serif; } .ds-result-panel h2 { margin: 0 0 8px; color: #18181b; font: 700 18px/1.55 Geist, Arial, Helvetica, sans-serif; } .ds-result-panel p { margin: 0; }"
+    },
+    {
+      "name": "Empty Result State",
+      "kind": "card",
+      "description": "Dashed placeholder state before a review has run.",
+      "html": "<div class=\"ds-empty-state\"><p>Paste some code and run a review</p></div>",
+      "css": ".ds-empty-state { min-height: 320px; display: flex; align-items: center; justify-content: center; border: 1px dashed #d4d4d8; border-radius: 8px; background: transparent; color: #71717a; padding: 24px; text-align: center; font: 400 14px/1.5 Geist, Arial, Helvetica, sans-serif; } .ds-empty-state p { margin: 0; }"
+    },
+    {
+      "name": "Error Message",
+      "kind": "card",
+      "description": "Inline API error container.",
+      "html": "<div class=\"ds-error\">Review failed</div>",
+      "css": ".ds-error { border: 1px solid #fecaca; border-radius: 8px; background: #fef2f2; color: #991b1b; padding: 16px; font: 400 14px/1.5 Geist, Arial, Helvetica, sans-serif; }"
+    },
+    {
+      "name": "Token Chip",
+      "kind": "chip",
+      "description": "Small passive metadata chip for token usage.",
+      "html": "<span class=\"ds-token-chip\">~1,248 tokens (932 in / 316 out)</span>",
+      "css": ".ds-token-chip { display: inline-flex; align-items: center; border-radius: 6px; background: #f4f4f5; color: #71717a; padding: 4px 8px; font: 400 12px/1.5 Geist, Arial, Helvetica, sans-serif; }"
+    },
+    {
+      "name": "Top Navigation",
+      "kind": "nav",
+      "description": "Compact top bar with brand link and decorative avatar.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-brand\" href=\"/\"><span class=\"ds-avatar\"></span><span>Code Review</span></a></nav>",
+      "css": ".ds-nav { height: 56px; display: flex; align-items: center; border-bottom: 1px solid #e4e4e7; background: #ffffff; padding: 0 24px; } .ds-brand { display: inline-flex; align-items: center; gap: 8px; color: #171717; text-decoration: none; font: 700 18px/1.2 Geist, Arial, Helvetica, sans-serif; } .ds-brand:focus-visible { outline: 2px solid #3b82f6; outline-offset: 4px; border-radius: 6px; } .ds-avatar { width: 50px; height: 50px; border-radius: 9999px; background: #f4f4f5; border: 1px solid #e4e4e7; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Bench Light",
+    "overview": "Code Review currently uses a flat, restrained interface that behaves like a clean workbench: a place to paste code, run a review, and read findings without decorative interference. The system is mostly white, zinc, and near-black, with borders doing the work that shadows often do elsewhere.\n\nThe brand context asks for minimalism and explicitly rejects dark-purple AI SaaS. This design system should preserve the plainspoken restraint in the existing UI while giving future landing work enough structure to feel intentional rather than default.",
+    "keyCharacteristics": [
+      "Restrained monochrome foundation with sparse state color.",
+      "Flat surfaces, visible borders, and compact radii.",
+      "Geist sans for product language, Geist Mono only where code is the material.",
+      "Clear two-column working layout on desktop, stacked flow on smaller screens.",
+      "No glossy AI motifs, neon gradients, or dark-purple presentation tropes."
+    ],
+    "rules": [
+      {
+        "name": "The Restraint Rule",
+        "body": "Use one strong action color per surface. Today that color is graphite, with blue reserved for focus and red reserved for errors.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Purple AI Rule",
+        "body": "Do not introduce dark-purple gradients, neon violet glows, or glossy AI surfaces. If a future brand accent is added, it must support minimal precision instead of signaling generic AI.",
+        "section": "colors"
+      },
+      {
+        "name": "The Code Is The Texture Rule",
+        "body": "Monospace belongs to code and code output. The surrounding brand voice stays in Geist sans.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat By Default Rule",
+        "body": "Surfaces sit on the page. Use borders, background shifts, and spacing before adding a shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the palette restrained: white, near-black, zinc neutrals, one focus blue, one error red.",
+      "Do use real review language: security, organization, readability, architecture, logic.",
+      "Do preserve strong contrast for body text, placeholder text, controls, and error states.",
+      "Do keep forms and results close together so the landing surface demonstrates the actual review workflow.",
+      "Do add any future brand color with discipline, using it for identity and emphasis rather than generic AI decoration."
+    ],
+    "donts": [
+      "Don't make this dark-purple AI SaaS.",
+      "Don't use neon gradients, glossy AI motifs, glass panels, or template-like hero metrics.",
+      "Don't use gradient text or repeated tiny uppercase section eyebrows.",
+      "Don't use monospace for all brand copy just because the audience is developers.",
+      "Don't pair 1px borders with large soft shadows on cards or buttons."
+    ]
+  }
+}

@@ -139,9 +139,9 @@ ${sanitizedCode}
       withRequestLogging(start, req, NextResponse.json({ content, usage })),
       remaining
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
     const remaining = Number(req.headers.get('x-ratelimit-remaining') ?? config.rateLimitMax);
-    const isTimeout = err?.name === 'AbortError';
+    const isTimeout = err instanceof Error && err.name === 'AbortError';
     return jsonResponse(
       start,
       req,
